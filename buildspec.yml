@@ -1,0 +1,36 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+    commands:
+      - java -version
+      - chmod +x ./gradlew
+
+  pre_build:
+    commands:
+      - ./gradlew test
+
+  build:
+    commands:
+      - ./gradlew clean bootJar
+      # plain.jar 제외하고 실행 jar만 선택
+      - JAR_PATH=$(ls -1 build/libs/*.jar | grep -v plain | head -n 1)
+      - echo "JAR_PATH=$JAR_PATH"
+
+      # CodeDeploy가 받을 번들 구성
+      - rm -rf bundle && mkdir -p bundle
+      - cp "$JAR_PATH" bundle/app.jar
+      - cp appspec.yml bundle/
+      - cp -r scripts bundle/
+
+artifacts:
+  base-directory: bundle
+  files:
+    - '**/*'
+
+cache:
+  paths:
+    - '/root/.gradle/caches/**/*'
+    - '/root/.gradle/wrapper/**/*'
